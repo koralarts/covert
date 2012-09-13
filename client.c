@@ -1,22 +1,29 @@
-/***********************************************************
-* SOURCE FILE: epoll.cpp
+/*******************************************************************************
+* SOURCE FILE: server.c
 *
-* PROGRAM: PortForwarder
+* PROGRAM: Covert
 *
 * FUNCTIONS:
-* int Epoll_create(int queue);
-* int Epoll_ctl(int epfd, int op, int sockfd, struct epoll_event *event);
-* int Epoll_wait(int epollfd, struct epoll_event *event, int queue, int timeout);
+* unsigned int ip_convert(char *hostname);
+* unsigned short in_cksum(unsigned short *ptr, int nbytes);
+* void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned short
+*        source_port, unsigned short dest_port, char *filename, int option);
+* struct iphdr createIphdr(unsigned int source_ip, unsigned int dest_ip, int type,
+*        char c);
+* struct tcphdr createTcphdr(unsigned short source_port, unsigned short dest_port);
 *
-* DATE: MARCH 11, 2012
+* DATE: September 13, 2012
 *
-* DESIGNER: Karl Castillo
+* DESIGNER: Karl Castillo (c)
 *
-* PROGRAMMER: Karl Castillo
+* PROGRAMMER: Karl Castillo (c)
 *
 * NOTES:
-* Contains wrapper functions for the Linux ePoll API.
-***********************************************************/
+* The client side of the covert program.
+*
+* COMPILE:
+* gcc -W -Wall -o client client.c
+*******************************************************************************/
 
 /* INCLUDES */
 #include <stdio.h>
@@ -61,10 +68,35 @@ unsigned int ip_convert(char *hostname);
 unsigned short in_cksum(unsigned short *ptr, int nbytes);
 void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned short
         source_port, unsigned short dest_port, char *filename, int option);
-struct iphdr createIphdr(unsigned int source_ip, unsigned int dest_ip, int tpye,
+struct iphdr createIphdr(unsigned int source_ip, unsigned int dest_ip, int type,
         char c);
 struct tcphdr createTcphdr(unsigned short source_port, unsigned short dest_port);
 
+/*******************************************************************************
+* FUNCTION: main
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: int main(int argc, char* argv[])
+* argc: the number of arguments including the name of the program
+* argv: the array containing the arguments where arg[0] is the name of the
+*       program
+*
+* RETURN: int
+* 0: in success
+* 1: not running in root error
+* 2: no decoding type chosen
+*
+* NOTES:
+* A generic main function where the command line arguments are parsed, and the
+* proper preparations are made.
+*******************************************************************************/
 int main(int argc, char* argv[])
 {
         unsigned int source_ip = 0;
@@ -77,7 +109,7 @@ int main(int argc, char* argv[])
         char sourceIp[80] = DEF_SIP;
         char file_name[80] = DEF_FIL;
         
-        if(getuid() != 0) {
+        if(getuid() != 0) { /* check if user is in ROOT */
                 printf("\nYou must run this in root!\n");
                 return 1;
         }
@@ -123,6 +155,34 @@ int main(int argc, char* argv[])
         return 0;
 }
 
+/*******************************************************************************
+* FUNCTION: doEncode
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned
+        short source_port, unsigned short dest_port, char *file_name, int type)
+* source_ip: the ip where the data supposedly be coming from
+* dest_ip: the ip where the data will be sent to
+* source_port: the port where the data will be coming from
+* dest_port: the port where the data will go to
+* file_name: the name of the input file
+* type: the type of encoding that will be done
+*       1: TOS
+*       2:  TTL
+*
+* RETURN: void
+*
+* NOTES:
+* DoEncode is the function where the client will send the hidden data to the
+* server. This is also where the file will be read for transfer.
+*******************************************************************************/
 void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned short
         source_port, unsigned short dest_port, char *file_name, int type)
 {
@@ -174,6 +234,31 @@ void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned short
         fclose(file);
 }
 
+/*******************************************************************************
+* FUNCTION: createIphdr
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: struct iphdr createIphdr(unsigned int source_ip, unsigned int 
+        dest_ip, int type, char c)
+* source_ip: the ip where the data supposedly be coming from
+* dest_ip: the ip where the data will be sent to
+* type: the type of encoding that will be done
+*       1: TOS
+*       2:  TTL
+*
+* RETURN: struct iphdr: a fully populate IP header
+*
+* NOTES:
+* CreateIphdr populates an IP header with the proper information including
+* encoding the data in its proper field.
+*******************************************************************************/
 struct iphdr createIphdr(unsigned int source_ip, unsigned int dest_ip, int type,
         char c)
 {   
@@ -203,6 +288,27 @@ struct iphdr createIphdr(unsigned int source_ip, unsigned int dest_ip, int type,
         return ip;
 }
 
+/*******************************************************************************
+* FUNCTION: createTcphdr
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: struct tcphdr createTcphdr(unsigned short source_port, unsigned 
+        short dest_port)
+* source_port: the port where the data will be coming from
+* dest_port: the port where the data will go to
+*
+* RETURN: struct tcphdr: a fully populate TCP header
+*
+* NOTES:
+* CreateIphdr populates an IP header with the proper information.
+*******************************************************************************/
 struct tcphdr createTcphdr(unsigned short source_port, unsigned short dest_port)
 {
         struct tcphdr tcp;
@@ -229,6 +335,26 @@ struct tcphdr createTcphdr(unsigned short source_port, unsigned short dest_port)
         return tcp;
 }
 
+/*******************************************************************************
+* FUNCTION: in_cksum
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Craig Rowland (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: unsigned short in_cksum(unsigned short *ptr, int nbytes)
+* ptr: pointer to the header
+* nbytes: size of the header
+*
+* RETURN: unsigned short: the calculated checksum
+*
+* NOTES:
+* In_cksum calculates the poper checksum depending on the header type.
+*******************************************************************************/
 unsigned short in_cksum(unsigned short *ptr, int nbytes)
 {
 	register long sum;
@@ -265,6 +391,25 @@ unsigned short in_cksum(unsigned short *ptr, int nbytes)
 	return(answer);
 }
 
+/*******************************************************************************
+* FUNCTION: ip_convert
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: unsigned int ip_convert(char *hostname)
+* hostname: the ip address that will be converted
+*
+* RETURN: unsigned int: converted hostname
+*
+* NOTES:
+* Converts a hostname to the proper format for the socket
+*******************************************************************************/
 unsigned int ip_convert(char *hostname)
 {
         static struct in_addr inaddr;

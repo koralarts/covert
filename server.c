@@ -1,22 +1,23 @@
-/***********************************************************
-* SOURCE FILE: epoll.cpp
+/*******************************************************************************
+* SOURCE FILE: server.c
 *
-* PROGRAM: PortForwarder
+* PROGRAM: Covert
 *
 * FUNCTIONS:
-* int Epoll_create(int queue);
-* int Epoll_ctl(int epfd, int op, int sockfd, struct epoll_event *event);
-* int Epoll_wait(int epollfd, struct epoll_event *event, int queue, int timeout);
+* void doDecoding(unsigned short port, char* file_name, int type);
 *
-* DATE: MARCH 11, 2012
+* DATE: September 13, 2012
 *
-* DESIGNER: Karl Castillo
+* DESIGNER: Karl Castillo (c)
 *
-* PROGRAMMER: Karl Castillo
+* PROGRAMMER: Karl Castillo (c)
 *
 * NOTES:
-* Contains wrapper functions for the Linux ePoll API.
-***********************************************************/
+* The server side of the covert program.
+*
+* COMPILE:
+* gcc -W -Wall -o server server.c
+*******************************************************************************/
 /* INCLUDES */
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,14 +38,41 @@
 #define DEF_PORT        8000
 #define DEF_FIL         "secret2.txt"
 
+/* STRUCTURES */
 typedef struct recvdhr {
         struct iphdr ip;
         struct tcphdr tcp;
         char buffer[10000];
 } RECVHDR, *PRECVHDR;
 
+/* PROTOTYPES */
 void doDecoding(unsigned short port, char* file_name, int type);
 
+/*******************************************************************************
+* FUNCTION: main
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: int main(int argc, char* argv[])
+* argc: the number of arguments including the name of the program
+* argv: the array containing the arguments where arg[0] is the name of the
+*       program
+*
+* RETURN: int
+* 0: in success
+* 1: not running in root error
+* 2: no decoding type chosen
+*
+* NOTES:
+* A generic main function where the command line arguments are parsed, and the
+* proper preparations are made.
+*******************************************************************************/
 int main(int argc, char* argv[])
 {
         unsigned short port = DEF_PORT;
@@ -54,21 +82,21 @@ int main(int argc, char* argv[])
         
         if(getuid() != 0) {
                 perror("\nYou must run this in root!\n");
-                exit(EXIT_FAILURE);
+                return 1;
         }
         
         while((option = getopt(argc, argv, ":p:f:utl")) != -1) {
                 switch(option) {
-                case 'p':
+                case 'p': /* port */
                         port = atoi(optarg);
                         break;
-                case 'f':
+                case 'f': /* file name */
                         strncpy(file_name, optarg, 79);
                         break;
-                case 't':
+                case 't': /* TOS */
                         encoding_type = TOS;
                         break;
-                case 'l':
+                case 'l': /* TTL */
                         encoding_type = TTL;
                         break;
                 }
@@ -76,7 +104,7 @@ int main(int argc, char* argv[])
         
         if(encoding_type == 0) {
                 printf("Please select an encoding type (-u or -w)\n");
-                return 1;
+                return 2;
         }
         
         doDecoding(port, file_name, encoding_type);
@@ -84,6 +112,31 @@ int main(int argc, char* argv[])
         return 0;
 }
 
+/*******************************************************************************
+* FUNCTION: doDecoding
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: void doDecoding(unsigned short port, char* file_name, int type)
+* port: the port where the data will be coming from
+* file_name: the name of the output file where the data will be written in
+* type: the type of encoding
+*       1: TOS
+*       2: TTL
+*
+* RETURN: void
+*
+* NOTES:
+* DoDecoding is where the server reads from the socket and properly decodes
+* the packet for writing in the file. The data might be stored in the TOS field,
+* or TTL.
+*******************************************************************************/
 void doDecoding(unsigned short port, char* file_name, int type)
 {
         PRECVHDR recvhdr = (PRECVHDR)malloc(sizeof(RECVHDR));
