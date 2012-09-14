@@ -78,6 +78,7 @@ int main(int argc, char* argv[])
         unsigned short port = DEF_PORT;
         int encoding_type = 0;
         int option = 0;
+        char* encoding_name;
         char file_name[80] = DEF_FIL;
         
         if(getuid() != 0) {
@@ -95,9 +96,11 @@ int main(int argc, char* argv[])
                         break;
                 case 't': /* TOS */
                         encoding_type = TOS;
+                        encoding_name = "TOS";
                         break;
                 case 'l': /* TTL */
                         encoding_type = TTL;
+                        encoding_name = "TTL";
                         break;
                 }
         }
@@ -106,6 +109,11 @@ int main(int argc, char* argv[])
                 printf("Please select an encoding type (-u or -w)\n");
                 return 2;
         }
+        
+        printf("Covert Data Transfer using TCP Version %s (Server)\n", VERSION);
+        printf("Karl Castillo (c)\n\n");
+        printf("File Name: %s\n", file_name);
+        printf("Encoding: %s\n", encoding_name);
         
         doDecoding(port, file_name, encoding_type);
         

@@ -108,6 +108,9 @@ int main(int argc, char* argv[])
         char destIp[80] = DEF_DIP;
         char sourceIp[80] = DEF_SIP;
         char file_name[80] = DEF_FIL;
+        char *encoding_name;
+        char *source_name = DEF_SIP;
+        char *dest_name = DEF_DIP;
         
         if(getuid() != 0) { /* check if user is in ROOT */
                 printf("\nYou must run this in root!\n");
@@ -117,10 +120,12 @@ int main(int argc, char* argv[])
         while((option = getopt(argc, argv, ":S:D:s:d:f:tl")) != -1) {
                 switch(option) {
                 case 'S': /* source IP */
+                	source_name = optarg;
                         source_ip = ip_convert(optarg);
                         strncpy(sourceIp, optarg, 79);
                         break;
                 case 'D': /* destination IP */
+                	dest_name = optarg;
                         dest_ip = ip_convert(optarg);
                         strncpy(destIp, optarg, 79);
                         break;
@@ -132,9 +137,11 @@ int main(int argc, char* argv[])
                         break;
                 case 't': /* tos */
                         encoding_type = TOS;
+                        encoding_name = "TOS";
                         break;
                 case 'l': /* ttl */
                         encoding_type = TTL;
+                        encoding_name = "TTL";
                         break;
                 case 'f': /* file name */
                         strncpy(file_name, optarg, 79);
@@ -147,7 +154,14 @@ int main(int argc, char* argv[])
                 return 2;
         }
         
-        printf("Type: %d\n", encoding_type);
+        printf("Covert Data Transfer using TCP Version %s (Server)\n", VERSION);
+        printf("Karl Castillo (c)\n\n");
+        printf("Source IP: %s\n", source_name);
+        printf("Source Port: %d\n", source_port);
+        printf("Destination IP: %s\n", dest_name);
+        printf("Destination Port: %d\n", dest_port);
+        printf("File Name: %s\n", file_name);
+        printf("Encoding: %s\n", encoding_name);
         
         doEncode(source_ip, dest_ip, source_port, dest_port, file_name, 
                 encoding_type);
