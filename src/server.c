@@ -46,7 +46,8 @@ typedef struct recvdhr {
 } RECVHDR, *PRECVHDR;
 
 /* PROTOTYPES */
-void doDecoding(unsigned short port, char* file_name, int type);
+void doDecoding(unsigned int source, unsigned short port, char* file_name, int type);
+unsigned int ip_convert(char *hostname);
 
 /*******************************************************************************
 * FUNCTION: main
@@ -75,6 +76,7 @@ void doDecoding(unsigned short port, char* file_name, int type);
 *******************************************************************************/
 int main(int argc, char* argv[])
 {
+	unsigned int source_ip = 0;
         unsigned short port = DEF_PORT;
         int encoding_type = 0;
         int option = 0;
@@ -86,9 +88,12 @@ int main(int argc, char* argv[])
                 return 1;
         }
         
-        while((option = getopt(argc, argv, ":p:f:utl")) != -1) {
+        while((option = getopt(argc, argv, ":s:f:utl")) != -1) {
                 switch(option) {
-                case 'p': /* port */
+                case 'S': /* source IP */
+                	source_ip = ip_convert(optarg);
+                        break;
+                case 's': /* source port */
                         port = atoi(optarg);
                         break;
                 case 'f': /* file name */
@@ -115,7 +120,7 @@ int main(int argc, char* argv[])
         printf("File Name: %s\n", file_name);
         printf("Encoding: %s\n", encoding_name);
         
-        doDecoding(port, file_name, encoding_type);
+        doDecoding(source_ip, port, file_name, encoding_type);
         
         return 0;
 }
@@ -145,7 +150,7 @@ int main(int argc, char* argv[])
 * the packet for writing in the file. The data might be stored in the TOS field,
 * or TTL.
 *******************************************************************************/
-void doDecoding(unsigned short port, char* file_name, int type)
+void doDecoding(unsigned int source, unsigned short port, char* file_name, int type)
 {
         PRECVHDR recvhdr = (PRECVHDR)malloc(sizeof(RECVHDR));
         FILE *file;
@@ -156,6 +161,7 @@ void doDecoding(unsigned short port, char* file_name, int type)
                 exit(1);
         }
         
+        
         while(1) {
                 if((sock = socket(AF_INET, SOCK_RAW, 6)) < 0) {
                         perror("Cannot open socket");
@@ -164,18 +170,56 @@ void doDecoding(unsigned short port, char* file_name, int type)
                 
                 read(sock, recvhdr, 9999);
                 
-                if(type == TOS) { /* data in TOS field */
-                        printf("Receiving data: %c\n", recvhdr->ip.tos);
-                        fprintf(file, "%c", recvhdr->ip.tos);
-                        fflush(file);
-                } else if(type == TTL) { /* data found in TTL */
-                        printf("Receiving data: %c\n", 
-                                (char)(recvhdr->ip.ttl - 64));
-                        fprintf(file, "%c", (char)(recvhdr->ip.ttl - 64));
-                        fflush(file);
+                printf("printing2\n");
+                if(recvhdr->tcp.syn == 1 && recvhdr->ip.saddr == source) {
+                	printf("printing\n");
+		        if(type == TOS) { /* data in TOS field */
+		                printf("Receiving data: %c\n", recvhdr->ip.tos);
+		                fprintf(file, "%c", recvhdr->ip.tos);
+		                fflush(file);
+		        } else if(type == TTL) { /* data found in TTL */
+		                printf("Receiving data: %c\n", 
+		                        (char)(recvhdr->ip.ttl - 64));
+		                fprintf(file, "%c", (char)(recvhdr->ip.ttl - 64));
+		                fflush(file);
+		        }
+		        close(sock);
                 }
-                close(sock);
         }
         free(recvhdr);
         fclose(file);
+}
+
+/*******************************************************************************
+* FUNCTION: ip_convert
+*
+* DATE: September 13, 2012
+*
+* REVISIONS: (Date and Description)
+*
+* DESIGNER: Karl Castillo (c)
+*
+* PROGRAMMER: Karl Castillo (c)
+*
+* INTERFACE: unsigned int ip_convert(char *hostname)
+* hostname: the ip address that will be converted
+*
+* RETURN: unsigned int: converted hostname
+*
+* NOTES:
+* Converts a hostname to the proper format for the socket
+*******************************************************************************/
+unsigned int ip_convert(char *hostname)
+{
+        static struct in_addr inaddr;
+        struct hostent *host;
+        
+        if((inaddr.s_addr = inet_addr(hostname)) == 0) {
+                if((host = gethostbyname(hostname)) == NULL) {
+                        fprintf(stderr, "Cannot resolve %s\n", hostname);
+                        exit(3);
+                }
+                bcopy(host->h_addr, (char*)&inaddr.s_addr, host->h_length);
+        }
+        return inaddr.s_addr;
 }

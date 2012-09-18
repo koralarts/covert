@@ -220,6 +220,8 @@ void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned short
         while((c = fgetc(file)) != EOF) {
                 sleep(1);
                 
+                printf("Sending: %c\n", c);
+                
                 sendhdr->ip = createIphdr(source_ip, dest_ip, type, c);
                 sendhdr->tcp = createTcphdr(source_port, dest_port);
                 
