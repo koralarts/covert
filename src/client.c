@@ -105,8 +105,6 @@ int main(int argc, char* argv[])
         unsigned short dest_port = DEF_DPORT;
         int encoding_type = 0;
         int option = 0;
-        char destIp[80] = DEF_DIP;
-        char sourceIp[80] = DEF_SIP;
         char file_name[80] = DEF_FIL;
         char *encoding_name;
         char *source_name = DEF_SIP;
@@ -122,12 +120,10 @@ int main(int argc, char* argv[])
                 case 'S': /* source IP */
                 	source_name = optarg;
                         source_ip = ip_convert(optarg);
-                        strncpy(sourceIp, optarg, 79);
                         break;
                 case 'D': /* destination IP */
                 	dest_name = optarg;
                         dest_ip = ip_convert(optarg);
-                        strncpy(destIp, optarg, 79);
                         break;
                 case 's': /* source port */
                         source_port = atoi(optarg);

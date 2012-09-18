@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
         int encoding_type = 0;
         int option = 0;
         char* encoding_name;
+        char* source_name;
         char file_name[80] = DEF_FIL;
         
         if(getuid() != 0) {
@@ -88,9 +89,10 @@ int main(int argc, char* argv[])
                 return 1;
         }
         
-        while((option = getopt(argc, argv, ":s:f:utl")) != -1) {
+        while((option = getopt(argc, argv, ":S:s:f:utl")) != -1) {
                 switch(option) {
                 case 'S': /* source IP */
+                	source_name = optarg;
                 	source_ip = ip_convert(optarg);
                         break;
                 case 's': /* source port */
@@ -117,8 +119,9 @@ int main(int argc, char* argv[])
         
         printf("Covert Data Transfer using TCP Version %s (Server)\n", VERSION);
         printf("Karl Castillo (c)\n\n");
+        printf("Source IP: %s\n", source_name);
         printf("File Name: %s\n", file_name);
-        printf("Encoding: %s\n", encoding_name);
+        printf("Encoding: %s\n\n", encoding_name);
         
         doDecoding(source_ip, port, file_name, encoding_type);
         
@@ -170,9 +173,9 @@ void doDecoding(unsigned int source, unsigned short port, char* file_name, int t
                 
                 read(sock, recvhdr, 9999);
                 
-                printf("printing2\n");
+                printf("After Read\n");
+                
                 if(recvhdr->tcp.syn == 1 && recvhdr->ip.saddr == source) {
-                	printf("printing\n");
 		        if(type == TOS) { /* data in TOS field */
 		                printf("Receiving data: %c\n", recvhdr->ip.tos);
 		                fprintf(file, "%c", recvhdr->ip.tos);
@@ -182,9 +185,9 @@ void doDecoding(unsigned int source, unsigned short port, char* file_name, int t
 		                        (char)(recvhdr->ip.ttl - 64));
 		                fprintf(file, "%c", (char)(recvhdr->ip.ttl - 64));
 		                fflush(file);
-		        }
-		        close(sock);
+		 	}
                 }
+                close(sock);
         }
         free(recvhdr);
         fclose(file);
