@@ -173,8 +173,6 @@ void doDecoding(unsigned int source, unsigned short port, char* file_name, int t
                 
                 read(sock, recvhdr, 9999);
                 
-                printf("After Read\n");
-                
                 if(recvhdr->tcp.syn == 1 && recvhdr->ip.saddr == source) {
 		        if(type == TOS) { /* data in TOS field */
 		                printf("Receiving data: %c\n", recvhdr->ip.tos);
