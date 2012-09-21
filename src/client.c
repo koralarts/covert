@@ -238,9 +238,6 @@ void doEncode(unsigned int source_ip, unsigned int dest_ip, unsigned short
                 sendhdr->tcp.check = in_cksum((unsigned short*)pseudohdr, 32);
                 
                 sendto(sock, sendhdr, 40, 0, (struct sockaddr *)&sin, sizeof(sin));
-                
-                free(sendhdr);
-                free(pseudohdr);
         }
         close(sock);
         fclose(file);
